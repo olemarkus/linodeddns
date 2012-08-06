@@ -32,7 +32,8 @@
 #                                                                    ^
 # You want 123456. The API key MUST have write access to this resource ID.
 #
-RESOURCE = "000000"
+DOMAIN="example.com"
+HOSTNAME="foo"
 #
 # Your Linode API key.  You can generate this by going to your profile in the
 # Linode manager.  It should be fairly long.
@@ -47,13 +48,13 @@ KEY = "abcdefghijklmnopqrstuvwxyz"
 #     header("Content-type: text/plain");
 #     printf("%s", $_SERVER["REMOTE_ADDR"]);
 #
-GETIP = "http://hosted.jedsmith.org/ip.php"
+GETIP = "http://ifconfig.me"
 #
 # If for some reason the API URI changes, or you wish to send requests to a
 # different URI for debugging reasons, edit this.  {0} will be replaced with the
 # API key set above, and & will be added automatically for parameters.
 #
-API = "https://api.linode.com/api/?api_key={0}&resultFormat=JSON"
+API = "https://api.linode.com/?api_key={0}&resultFormat=JSON"
 #
 # Comment or remove this line to indicate that you edited the options above.
 #
@@ -68,7 +69,7 @@ exit("Did you edit the options?  vi this file open.")
 # will also communicate via a return code.  The return codes are:
 #
 #    0 - No need to update, A record matches my public IP
-#    1 - Updated record
+#    0 - Updated record
 #    2 - Some kind of error or exception occurred
 #
 # The script will also output one line that starts with either OK or FAIL.  If
@@ -84,19 +85,24 @@ DEBUG = False
 
 try:
 	from json import load
-	from urllib.parse import urlencode
-	from urllib.request import urlretrieve
+	import urllib.request
+
 except Exception as excp:
 	exit("Couldn't import the standard library. Are you running Python 3?")
 
-def execute(action, parameters):
+class AppURLopener(urllib.request.FancyURLopener):
+    version = "curl"
+
+urllib.request._urlopener = AppURLopener()
+
+def execute(action, parameters = {}):
 	# Execute a query and return a Python dictionary.
 	uri = "{0}&action={1}".format(API.format(KEY), action)
 	if parameters and len(parameters) > 0:
-		uri = "{0}&{1}".format(uri, urlencode(parameters))
+		uri = "{0}&{1}".format(uri, urllib.parse.urlencode(parameters))
 	if DEBUG:
 		print("-->", uri)
-	file, headers = urlretrieve(uri)
+	file, headers = urllib.request.urlretrieve(uri)
 	if DEBUG:
 		print("<--", file)
 		print(headers, end="")
@@ -109,10 +115,24 @@ def execute(action, parameters):
 			err["ERRORMESSAGE"]))
 	return load(open(file), encoding="utf-8")
 
+def finddomainid():
+	domains = execute("domain.list")["DATA"]
+	for domain in domains:
+		if domain["DOMAIN"] == DOMAIN:
+			return domain["DOMAINID"]
+	raise Exception("Domain not found")
+
+def findresource(domainid):
+	resources = execute("domain.resource.list", {"DomainId": domainid})["DATA"]
+	for resource in resources:
+		if resource["NAME"] == HOSTNAME:
+			return resource
+	raise Exception("Could not find hostname under this domain")
+
 def ip():
 	if DEBUG:
 		print("-->", GETIP)
-	file, headers = urlretrieve(GETIP)
+	file, headers = urllib.request.urlretrieve(GETIP)
 	if DEBUG:
 		print("<--", file)
 		print(headers, end="")
@@ -122,7 +142,10 @@ def ip():
 
 def main():
 	try:
-		res = execute("domainResourceGet", {"ResourceID": RESOURCE})["DATA"]
+		domainid = finddomainid()
+		if DEBUG:
+			print("Found domain", domainid)
+		res = findresource(domainid)
 		if(len(res)) == 0:
 			raise Exception("No such resource?".format(RESOURCE))
 		public = ip()
@@ -136,9 +159,9 @@ def main():
 				"Target": public,
 				"TTL_Sec": res["TTL_SEC"]
 			}
-			execute("domainResourceSave", request)
+			execute("domain.resource.update", request)
 			print("OK {0} -> {1}".format(old, public))
-			return 1
+			return 0
 		else:
 			print("OK")
 			return 0
