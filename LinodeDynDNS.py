@@ -1,36 +1,22 @@
-#!/usr/bin/python3.1
+#!/usr/bin/env python3.1
 #
 # Easy Python3 Dynamic DNS
-# By Jed Smith <jed@jedsmith.org> 4/29/2009
+# Originally by Jed Smith <jed@jedsmith.org> 4/29/2009
+# Modified by Ole Markus With <olemarkus@olemarkus.org>
 # This code and associated documentation is released into the public domain.
-#
-# This script **REQUIRES** Python 3.0 or above.  Python 2.6 may work.
-# To see what version you are using, run this:
-#
-#   python --version
 #
 # To use:
 #
-#   0. You'll probably have to edit the shebang above.
-#
 #   1. In the Linode DNS manager, edit your zone (must be master) and create
 #      an A record for your home computer.  You can name it whatever you like;
-#      I call mine 'home'.  Fill in 0.0.0.0 for the IP.
+#      I call mine 'foo'.  Fill in 0.0.0.0 for the IP.
 #
 #   2. Save it.
 #
-#   3. Go back and edit the A record you just created. Make a note of the
-#      ResourceID in the URI of the page while editing the record.
-#
-#   4. Edit the four configuration options below, following the directions for
+#   3. Edit the four configuration options below, following the directions for
 #      each.  As this is a quick hack, it assumes everything goes right.
 #
-# First, the resource ID that contains the 'home' record you created above. If
-# the URI while editing that A record looks like this:
-#
-#  linode.com/members/dns/resource_aud.cfm?DomainID=98765&ResourceID=123456
-#                                                                    ^
-# You want 123456. The API key MUST have write access to this resource ID.
+# Simply add your domain name and hostname here
 #
 DOMAIN="example.com"
 HOSTNAME="foo"
@@ -40,9 +26,10 @@ HOSTNAME="foo"
 #
 KEY = "abcdefghijklmnopqrstuvwxyz"
 #
-# The URI of a Web service that returns your IP address as plaintext.  You are
-# welcome to leave this at the default value and use mine.  If you want to run
-# your own, the source code of that script is:
+# The URI of a Web service that returns your IP address as plaintext. 
+#
+# My personal one is ifconfig.me, but if you want your own, you can use the
+# following lines of PHP.
 #
 #     <?php
 #     header("Content-type: text/plain");
@@ -62,7 +49,7 @@ exit("Did you edit the options?  vi this file open.")
 #
 # That's it!
 #
-# Now run dyndns.py manually, or add it to cron, or whatever.  You can even have
+# Now run LinodeDynDNS.py manually, or add it to cron, or whatever.  You can even have
 # multiple copies of the script doing different zones.
 #
 # For automated processing, this script will always print EXACTLY one line, and
